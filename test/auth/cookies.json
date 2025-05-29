@@ -1,0 +1,32 @@
+[
+  {
+    "name": "sessionid",
+    "value": "vd22g3sky65ys4e7fck1tft5l88rl3qz",
+    "domain": "auth.zvonkodigital.ru",
+    "path": "/",
+    "expires": 1749744941.347427,
+    "size": 41,
+    "httpOnly": true,
+    "secure": false,
+    "session": false,
+    "sameSite": "Lax",
+    "priority": "Medium",
+    "sameParty": false,
+    "sourceScheme": "Secure"
+  },
+  {
+    "name": "csrftoken",
+    "value": "0t9uscHVZmGVpbZFfMP9CoxCRZ93eiuY",
+    "domain": "auth.zvonkodigital.ru",
+    "path": "/",
+    "expires": 1779984941.347221,
+    "size": 41,
+    "httpOnly": false,
+    "secure": false,
+    "session": false,
+    "sameSite": "Lax",
+    "priority": "Medium",
+    "sameParty": false,
+    "sourceScheme": "Secure"
+  }
+]
