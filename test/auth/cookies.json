@@ -1,10 +1,10 @@
 [
   {
     "name": "sessionid",
-    "value": "vd22g3sky65ys4e7fck1tft5l88rl3qz",
+    "value": "tb5hvzfs56cnwxrs3459f67cwpwdor7r",
     "domain": "auth.zvonkodigital.ru",
     "path": "/",
-    "expires": 1749744941.347427,
+    "expires": 1749870342.478483,
     "size": 41,
     "httpOnly": true,
     "secure": false,
@@ -16,10 +16,10 @@
   },
   {
     "name": "csrftoken",
-    "value": "0t9uscHVZmGVpbZFfMP9CoxCRZ93eiuY",
+    "value": "y2TrLALp9h37ubkq4Jymbkak1ibXDYC3",
     "domain": "auth.zvonkodigital.ru",
     "path": "/",
-    "expires": 1779984941.347221,
+    "expires": 1780110342.478345,
     "size": 41,
     "httpOnly": false,
     "secure": false,

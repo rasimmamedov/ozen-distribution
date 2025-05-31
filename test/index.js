@@ -15,12 +15,6 @@ async function checkZvonkodigital() {
   let browser;
   try {
 
-    // Запускаем браузер в headless-режиме
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-
     // Путь к Chrome на MacOS (для вашей системы)
     // const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
     // browser = await puppeteer.launch({
@@ -28,6 +22,14 @@ async function checkZvonkodigital() {
     //   headless: false, // Оставляем headless: false для отладки
     //   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-features=SameSiteByDefaultCookies'],
     // });
+
+    // Путь к Chrome на Linux (для вашей системы)
+    const chromePath = '/usr/bin/google-chrome';
+    browser = await puppeteer.launch({
+      executablePath: chromePath,
+      headless: false, // Оставляем headless: false для отладки
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-features=SameSiteByDefaultCookies'],
+    });
 
     const page = await browser.newPage();
 
@@ -51,19 +53,18 @@ async function checkZvonkodigital() {
     // Проверяем текущий URL после всех редиректов
     const currentUrl = page.url();
     console.log('Текущий URL после редиректов:', currentUrl);
-
+    
     // Проверяем, авторизованы ли мы (только по URL)
     const isLoggedIn = currentUrl.includes('/dashboard') && cookiesLoaded;
     console.log('Статус авторизации (isLoggedIn):', isLoggedIn);
-
-    if (!isLoggedIn) {
+    if (!isLoggedIn || currentUrl.includes('account/oauth-login')) {
       console.log('Куки недействительны или отсутствуют, выполняем вход...');
 
       // Проверяем, находимся ли мы уже на странице логина
       if (!currentUrl.includes('auth.zvonkodigital.ru/login')) {
         // Если не на странице логина, переходим на страницу OAuth-логина
         console.log('Переходим на страницу OAuth-логина...');
-        await page.goto('https://account.zvonkodigital.ru/account/oauth-login', {
+        await page.goto('https://auth.zvonkodigital.ru/login', {
           waitUntil: 'domcontentloaded',
         });
 
@@ -75,6 +76,7 @@ async function checkZvonkodigital() {
       // Проверяем текущий URL
       const loginUrl = page.url();
       console.log('Текущий URL:', loginUrl);
+
       if (!loginUrl.includes('auth.zvonkodigital.ru/login')) {
         throw new Error('Не удалось перейти на страницу логина');
       } else {
@@ -153,34 +155,52 @@ async function checkZvonkodigital() {
     if (!draftsUrl.includes('/music/drafts')) {
       throw new Error('Не удалось перейти на страницу черновиков, возможно, сессия недействительна');
     }
-
+    
     // Проверяем наличие записей
-    console.log('Проверяем наличие записей...');
-    const records = await page.$$('.css-1xgpa60'); // Попробуем уточнить селектор
-    if (records.length > 0) {
-      console.log(`Найдено ${records.length} записей!`);
+    try {
+      // Wait for at least one element to appear
+      await page.waitForFunction(
+        () => document.querySelectorAll('.css-16g8jyh .css-177dxab .chakra-container.css-13qbca2 .chakra-stack.css-1w8h4cc .css-1xgpa60').length > 0,
+        { timeout: 10000 }
+      );
+      const records = await page.$$('.css-16g8jyh .css-177dxab .chakra-container.css-13qbca2 .chakra-stack.css-1w8h4cc .css-1xgpa60');
+      console.log(`Found ${records.length} elements`);
       for (const record of records) {
-        const recordData = await record.evaluate((el) => {
-          // Извлекаем данные более структурировано
-          const title = el.querySelector('div')?.textContent || '';
-          const details = Array.from(el.querySelectorAll('div')).map((div) => div.textContent.trim());
-          return { title, details };
-        });
-
-        // Фильтруем пустые записи
-        if (recordData.title && recordData.details.some((detail) => detail.includes('UPC'))) {
-          console.log('Запись:');
-          console.log('  Название:', recordData.title);
-          recordData.details.forEach((detail, index) => {
-            if (detail && !detail.includes('Loading...')) {
-              console.log(`  Деталь ${index + 1}: ${detail}`);
-            }
-          });
-        }
+        const text = await page.evaluate(el => el.textContent.trim(), record);
+        console.log('Element text:', text);
+        console.log('Element:', record);
       }
-    } else {
-      console.log('Записей не найдено.');
+    } catch (error) {
+      console.error('Error:', error);
     }
+
+   
+    
+    // Попробуем уточнить селектор
+    // if (records.length > 0) {
+    //   console.log(`Найдено ${records.length} записей!`);
+    //   for (const record of records) {
+    //     const recordData = await record.evaluate((el) => {
+    //       // Извлекаем данные более структурировано
+    //       const title = el.querySelector('div')?.textContent || '';
+    //       const details = Array.from(el.querySelectorAll('div')).map((div) => div.textContent.trim());
+    //       return { title, details };
+    //     });
+
+    //     // Фильтруем пустые записи
+    //     if (recordData.title && recordData.details.some((detail) => detail.includes('UPC'))) {
+    //       console.log('Запись:');
+    //       console.log('  Название:', recordData.title);
+    //       recordData.details.forEach((detail, index) => {
+    //         if (detail && !detail.includes('Loading...')) {
+    //           console.log(`  Деталь ${index + 1}: ${detail}`);
+    //         }
+    //       });
+    //     }
+    //   }
+    // } else {
+    //   console.log('Записей не найдено.');
+    // }
 
   } catch (error) {
     console.error('Ошибка:', error.message);
