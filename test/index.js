@@ -10,43 +10,56 @@ const cookiesPath = path.join('auth', 'cookies.json');
 const tokensPath = path.join('auth', 'tokens.json');
 const app = express();
 
+let browser;
+let page;
+
 // Основная функция для проверки ZVONKO digital
-async function checkZvonkodigital() {
-  let browser;
+async function browserStart() {
   try {
-
     // Путь к Chrome на MacOS (для вашей системы)
-    // const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-    // browser = await puppeteer.launch({
-    //   executablePath: chromePath,
-    //   headless: false, // Оставляем headless: false для отладки
-    //   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-features=SameSiteByDefaultCookies'],
-    // });
-
-    // Путь к Chrome на Linux (для вашей системы)
-    const chromePath = '/usr/bin/google-chrome';
+    const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
     browser = await puppeteer.launch({
       executablePath: chromePath,
-      headless: true, // Оставляем headless: false для отладки
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', // Prevent crashes due to limited /dev/shm
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu', // Disable GPU in headless mode
-        '--disable-features=SameSiteByDefaultCookies',
-      ],  
+      headless: false, // Оставляем headless: false для отладки
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-features=SameSiteByDefaultCookies'],
     });
 
-    const page = await browser.newPage();
+    // Путь к Chrome на Linux (для вашей системы)
+    // const chromePath = '/usr/bin/google-chrome';
+    // browser = await puppeteer.launch({
+    //   executablePath: chromePath,
+    //   headless: true, // Оставляем headless: false для отладки
+    //   args: [
+    //     '--no-sandbox',
+    //     '--disable-setuid-sandbox',
+    //     '--disable-dev-shm-usage', // Prevent crashes due to limited /dev/shm
+    //     '--disable-accelerated-2d-canvas',
+    //     '--disable-gpu', // Disable GPU in headless mode
+    //     '--disable-features=SameSiteByDefaultCookies',
+    //   ],  
+    // });
 
+    page = await browser.newPage();
+    
     // Увеличиваем таймаут для навигации
     page.setDefaultNavigationTimeout(60000); // 60 секунд
 
     // Логируем события консоли страницы для отладки
     page.on('console', (msg) => console.log('Страница консоль:', msg.text()));
 
-    // Загружаем куки, если они есть
+  
+  } catch (error) {
+    console.error('Ошибка:', error.message);
+  } finally {
+    if (browser) {
+      console.log('END...');
+      // await browser.close();
+    }
+  }
+}
+
+async function login() {
+   // Загружаем куки, если они есть
     const cookiesLoaded = await loadCookies(page);
 
     // Пробуем перейти на страницу дашборда
@@ -58,19 +71,21 @@ async function checkZvonkodigital() {
     await waitForNavigationToSettle(page);
 
     // Проверяем текущий URL после всех редиректов
-    const currentUrl = page.url();
+    const currentUrl = await page.url();
     console.log('Текущий URL после редиректов:', currentUrl);
     
     // Проверяем, авторизованы ли мы (только по URL)
-    const isLoggedIn = currentUrl.includes('/dashboard') && cookiesLoaded;
+    const isLoggedIn = await currentUrl.includes('/dashboard') && cookiesLoaded;
+
     console.log('Статус авторизации (isLoggedIn):', isLoggedIn);
+
     if (!isLoggedIn || currentUrl.includes('account/oauth-login')) {
       console.log('Куки недействительны или отсутствуют, выполняем вход...');
 
       // Проверяем, находимся ли мы уже на странице логина
       if (!currentUrl.includes('auth.zvonkodigital.ru/login')) {
-        // Если не на странице логина, переходим на страницу OAuth-логина
-        console.log('Переходим на страницу OAuth-логина...');
+        // Если не на странице логина, переходим на страницу логина
+        console.log('Переходим на страницу логина...');
         await page.goto('https://auth.zvonkodigital.ru/login', {
           waitUntil: 'domcontentloaded',
         });
@@ -147,76 +162,6 @@ async function checkZvonkodigital() {
     } else {
       console.log('Авторизация через куки успешна, вход не требуется.');
     }
-
-    // Переходим на страницу с черновиками
-    console.log('Переходим на страницу черновиков...');
-    await page.goto('https://account.zvonkodigital.ru/music/drafts', { waitUntil: 'domcontentloaded' });
-
-    // Ждем завершения всех редиректов
-    console.log('Ожидаем завершения редиректов на странице черновиков...');
-    await waitForNavigationToSettle(page);
-
-    // Проверяем текущий URL
-    const draftsUrl = page.url();
-    console.log('Текущий URL после перехода на черновики:', draftsUrl);
-    if (!draftsUrl.includes('/music/drafts')) {
-      throw new Error('Не удалось перейти на страницу черновиков, возможно, сессия недействительна');
-    }
-    
-    // Проверяем наличие записей
-    try {
-      // Wait for at least one element to appear
-      await page.waitForFunction(
-        () => document.querySelectorAll('.css-16g8jyh .css-177dxab .chakra-container.css-13qbca2 .chakra-stack.css-1w8h4cc .css-1xgpa60').length > 0,
-        { timeout: 10000 }
-      );
-      const records = await page.$$('.css-16g8jyh .css-177dxab .chakra-container.css-13qbca2 .chakra-stack.css-1w8h4cc .css-1xgpa60');
-      console.log(`Found ${records.length} elements`);
-      for (const record of records) {
-        const text = await page.evaluate(el => el.textContent.trim(), record);
-        console.log('Element text:', text);
-        console.log('Element:', record);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-    }
-
-   
-    
-    // Попробуем уточнить селектор
-    // if (records.length > 0) {
-    //   console.log(`Найдено ${records.length} записей!`);
-    //   for (const record of records) {
-    //     const recordData = await record.evaluate((el) => {
-    //       // Извлекаем данные более структурировано
-    //       const title = el.querySelector('div')?.textContent || '';
-    //       const details = Array.from(el.querySelectorAll('div')).map((div) => div.textContent.trim());
-    //       return { title, details };
-    //     });
-
-    //     // Фильтруем пустые записи
-    //     if (recordData.title && recordData.details.some((detail) => detail.includes('UPC'))) {
-    //       console.log('Запись:');
-    //       console.log('  Название:', recordData.title);
-    //       recordData.details.forEach((detail, index) => {
-    //         if (detail && !detail.includes('Loading...')) {
-    //           console.log(`  Деталь ${index + 1}: ${detail}`);
-    //         }
-    //       });
-    //     }
-    //   }
-    // } else {
-    //   console.log('Записей не найдено.');
-    // }
-
-  } catch (error) {
-    console.error('Ошибка:', error.message);
-  } finally {
-    if (browser) {
-      console.log('Закрываем браузер...');
-      // await browser.close();
-    }
-  }
 }
 
 // Функция для загрузки куки
@@ -289,10 +234,65 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Запускаем проверку
-checkZvonkodigital();
+
+app.get('/test', async (req, res) =>{
+
+    await browserStart();
+    
+    await login();
+    
+    // Переходим на страницу с черновиками
+    console.log('Переходим на страницу черновиков...');
+    await page.goto('https://account.zvonkodigital.ru/music/drafts', { waitUntil: 'domcontentloaded' });
+
+    // Ждем завершения всех редиректов
+    console.log('Ожидаем завершения редиректов на странице черновиков...');
+    await waitForNavigationToSettle(page);
+
+    // Проверяем текущий URL
+    const draftsUrl = page.url();
+    console.log('Текущий URL после перехода на черновики:', draftsUrl);
+    
+    if (!draftsUrl.includes('/music/drafts')) {
+      console.log('Error-1: Не удалось перейти на страницу черновиков, возможно, сессия недействительна')
+    }
+    
+    // Проверяем наличие записей
+    try {
+      // Wait for at least one element to appear
+      await page.waitForFunction(
+        () => document.querySelectorAll('.css-16g8jyh .css-177dxab .chakra-container.css-13qbca2 .chakra-stack.css-1w8h4cc .css-1xgpa60').length > 0,
+        { timeout: 10000 }
+      );
+      const records = await page.$$('.css-16g8jyh .css-177dxab .chakra-container.css-13qbca2 .chakra-stack.css-1w8h4cc .css-1xgpa60');
+      console.log(`Found ${records.length} elements`);
+      
+      for (const record of records) {
+        const text = await page.evaluate(el => el.textContent.trim(), record);
+        const attributes = await record.evaluate((el) => {
+            const releaseTitle = el.querySelector('p.chakra-text.css-106kqq8')?.textContent.trim();
+            const artist = el.querySelector('p.chakra-text.css-uvztd0')?.textContent.trim();
+            const upc = el.querySelector('p.chakra-text.css-hdwprs')?.textContent.trim();
+            const genre = el.querySelector('p.chakra-text.css-1ggvsen')?.textContent.trim();
+            const link = el.querySelector('a.chakra-button.css-aorlj0');
+            
+            return {
+              releaseTitle,
+              artist,
+              upc,
+              genre,
+              linkHref: link?.href
+            };
+        });
+        console.log(attributes)
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+})
 
 // Запускаем сервер
 app.listen(8080, () => {
   console.log('Сервер запущен на порту 8080');
 });
+
