@@ -27,8 +27,15 @@ async function checkZvonkodigital() {
     const chromePath = '/usr/bin/google-chrome';
     browser = await puppeteer.launch({
       executablePath: chromePath,
-      headless: false, // Оставляем headless: false для отладки
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-features=SameSiteByDefaultCookies'],
+      headless: true, // Оставляем headless: false для отладки
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage', // Prevent crashes due to limited /dev/shm
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu', // Disable GPU in headless mode
+        '--disable-features=SameSiteByDefaultCookies',
+      ],  
     });
 
     const page = await browser.newPage();
