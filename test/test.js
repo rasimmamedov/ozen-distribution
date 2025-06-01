@@ -9,4 +9,9 @@ async function test() {
   }
 }
 
-test();
+app.listen(8080, () => {
+  test();
+  console.log('Сервер запущен на порту 8080');
+  res.send('POST request to the homepage')
+});
+
