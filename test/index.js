@@ -17,27 +17,27 @@ let page;
 async function browserStart() {
   try {
     // Путь к Chrome на MacOS (для вашей системы)
-    const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-    browser = await puppeteer.launch({
-      executablePath: chromePath,
-      headless: false, // Оставляем headless: false для отладки
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-features=SameSiteByDefaultCookies'],
-    });
-
-    // Путь к Chrome на Linux (для вашей системы)
-    // const chromePath = '/usr/bin/google-chrome';
+    // const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
     // browser = await puppeteer.launch({
     //   executablePath: chromePath,
-    //   headless: true, // Оставляем headless: false для отладки
-    //   args: [
-    //     '--no-sandbox',
-    //     '--disable-setuid-sandbox',
-    //     '--disable-dev-shm-usage', // Prevent crashes due to limited /dev/shm
-    //     '--disable-accelerated-2d-canvas',
-    //     '--disable-gpu', // Disable GPU in headless mode
-    //     '--disable-features=SameSiteByDefaultCookies',
-    //   ],  
+    //   headless: false, // Оставляем headless: false для отладки
+    //   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-features=SameSiteByDefaultCookies'],
     // });
+
+    // Путь к Chrome на Linux (для вашей системы)
+    const chromePath = '/usr/bin/google-chrome';
+    browser = await puppeteer.launch({
+      executablePath: chromePath,
+      headless: true, // Оставляем headless: false для отладки
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage', // Prevent crashes due to limited /dev/shm
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu', // Disable GPU in headless mode
+        '--disable-features=SameSiteByDefaultCookies',
+      ],  
+    });
 
     page = await browser.newPage();
     
